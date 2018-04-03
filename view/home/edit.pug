@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <title>Edit todo</title>
+
+</head>
+
+
+<body>
+    
+    include ../shared/head.pug
+    <h1>Edit</h1>
+    if fullfilAll
+        p Veuillez renseigner les champs
+    if errorNotUpdated
+        p Une erreur s'est produite
+    if updated
+        p Mise a jour effectué !
+
+    form(method='POST' action='/todos/'+ mytodo.id+"/edit")
+      
+        p Message : 
+        input(type="text" name="message" id="message" value=''+mytodo.message)
+        <input type="hidden" name="patch" value="patch">
+        input(type="hidden" name="id" value=""+mytodo.id)
+        if mytodo.completion
+            p Finis ? : <input type="checkbox" name="completion" checked>
+        else 
+            p Finis ? : <input type="checkbox" name="completion">
+        
+
+        <input type="submit" id="submit" value="Editer" />
+    </form>
+    </body>
+    </html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <title>show todo</title>
+
+</head>
+
+
+<body>
+  
+  include ../shared/head.pug
+  if noTodoFound
+    p Vous n'avez pas de todo
+  if created
+    p Votre todo a bien été créer
+  if msg
+    p=msg
+    //TODO ajouter un lien vers la création
+  if listTodos
+    each val in listTodos
+        ul todo
+            li= val.message
+            li= val.createdAt
+            if team
+              li= "appartient à : "+ val['user.username']
+            if val.completion 
+              p Terminé
+            else
+              p En cours
+        if val.userId == userId  
+          form(method='GET' action='/todos/'+ val.id+"/edit")
+              input(type='submit' value='Editer')
+          form(method='POST' action='/todos/'+ val.id+"/delete")
+              input(type='submit' value='Supprimer')
+        
+  if todos
+    p test
+    ul= "todo n°"+ todos.id
+        li= "message : " + todos.message
+        li= "Created at : "+ todos.createdAt
+</body>
+</html>
