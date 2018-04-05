@@ -1,8 +1,9 @@
 var bcrypt = require("bcrypt");
 var crypto = require('crypto');
+let models = require("./models/index")
 async function getTodoById(id)
 {
-    let todos = await todo.findById(id)
+    let todos = await models.Todo.findById(id)
     if(todos != null && todos != undefined)
     {
         return todos
@@ -14,7 +15,7 @@ async function getTodoById(id)
 async function compareLoginAndPassword(pUsername , pPass)
 {
     
-    let users = await user.findOne({ where: {username: pUsername } })
+    let users = await models.User.findOne({ where: {username: pUsername } })
     
     if(users != null && users != undefined)
     {
@@ -49,7 +50,7 @@ async function compareCryptedPass(pass , hash)
 
 async function checkUserExist(username)
 {
-    let users = await user.findOne({where: {username : username}})
+    let users = await models.User.findOne({where: {username : username}})
     if(users != null && users != undefined)
     {
         return true
@@ -71,17 +72,17 @@ async function saveUser(username , password)
 {
     let api = await randomValueHex(Date.now())
     let pass = await cryptPass(password)
-    let users  = await user.create({
+    let users  = await models.User.create({
         username:username,
         password:pass,
         apiKey: api,
-        teamId:1
+        TeamId:1
         // TODO : changer pour demander a l'utilisateur si il veut séleectionner sa propre team
     })
     
     if(users != null && users != undefined)
     {
-        return user
+        return users
     }
     else
     {

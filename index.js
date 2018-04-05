@@ -4,9 +4,9 @@ const bodyParser = require("body-parser");
 const pug = require('pug');
 let cookieParser = require('cookie-parser');
 let session = require('express-session');
-require("./SequeliseInit")
+let models = require("./models/index")
 let utilFunction = require("./utilFunction")
-const Sequelize = require('sequelize');
+const Sequelize = require("sequelize")
 const op = Sequelize.Op;
 
 app.use(cookieParser());
@@ -14,15 +14,19 @@ app.use(session({secret: "Shh, its a secret!"}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); 
 
+models.sequelize.sync().then(()=>
+{
+    models.Team.create("team1")
+    models.Team.create("team2")
+})
+
 app.all("*" , (req,res,next)=>
 {
     /*
     * Chech if the user is connected or his api key is valid
     * if none of these conditions are fullfiled , we throw him on the login page
     * */
-    checkUser(req,res,next)
-
-    
+    checkUser(req,res,next) 
 })   
 app.listen(8080);
 
@@ -46,14 +50,15 @@ app.route('/add')
 })
 app.post("/todos", (req,res) =>
 {
+    
     if(req.body.message )
     {
             
-            todo.create({
+            models.Todo.create({
             message:req.body.message,
             completion:false,
-            userId: req.session.userId,
-            teamId: req.body.addToTeam != undefined ? req.session.teamId : null
+            UserId: req.session.userId,
+            TeamId: req.body.addToTeam != undefined ? req.session.teamId : 1
         }).then((user)=>
         {
             // you will meet this condition really often , we check the content type to know if the request want HTML or JSON as response
@@ -107,9 +112,9 @@ app.delete('/todos/:todoid', (req,res) =>
 function hackDelete(req,res)
 {
     
-    todo.destroy(
+    models.Todo.destroy(
         {
-            where: {id: req.params.todoid , userId: req.session.userId}
+            where: {id: req.params.todoid , UserId: req.session.userId}
         }
     ).then((number)=>
     {
@@ -148,7 +153,7 @@ function hackDelete(req,res)
 app.route("/todos/:todoid/edit")
 .get( (req,res) =>
 {
-    todo.find({where:{userId: req.session.userId , id: req.params.todoid }}).then((myTodo)=>
+    models.Todo.find({where:{UserId: req.session.userId , id: req.params.todoid }}).then((myTodo)=>
     {
         if(myTodo != null)
         {
@@ -195,18 +200,18 @@ function patchHack(req,res)
             }
             else
             {   
-               return res.status(200).send(pug.renderFile(process.cwd()+"/view/home/edit.pug", {fullfilAll:true})) 
+               return res.status(200).send(pug.renderFile(process.cwd()+"/view/home/index.pug")) 
             } 
     }
     
     let completionStatus = 1
-    todo.update(
+    models.Todo.update(
         {
             message: req.body.message,
             completion: req.body.completion != undefined ? 1 : 0   
         },
         {
-            where:{id: req.params.todoid , userId : req.session.userId},  
+            where:{id: req.params.todoid , UserId : req.session.userId},  
         }
     ).then((status)=>
     {
@@ -214,8 +219,10 @@ function patchHack(req,res)
         {
            return res.status(200).send(pug.renderFile(process.cwd()+"/view/home/edit.pug", {errorNotUpdated:true}))
         }
+        
         utilFunction.getTodoById(req.params.todoid).then((Todo)=>
         {
+            
             if(req.accepts("json" , "html") === "json")
             {
                return res.status(200).send(Todo.toJSON())
@@ -232,6 +239,7 @@ function patchHack(req,res)
             }
             else
             {
+            
                 return res.status(200).send(pug.renderFile(process.cwd()+"/view/home/edit.pug", {errorNotUpdated:true}))
             }
         })
@@ -285,6 +293,7 @@ app.route("/createAccount")
                 })
                 .catch((e)=>
                 {
+                  
                    return res.send(pug.renderFile(process.cwd() +"/view/createaccount/create.pug" , {error: true}))
                 })
                 }
@@ -313,6 +322,7 @@ app.route("/login")
     }
     else
     {
+        
         return res.send(pug.renderFile(process.cwd() +"/view/login/login.pug"))
     }
 })
@@ -322,9 +332,10 @@ app.route("/login")
     {
         utilFunction.compareLoginAndPassword(req.body.username , req.body.password).then((user)=>
         {
+            
              req.session.connected = true;
              req.session.userId = user.id;
-             req.session.teamId = user.teamId
+             req.session.teamId = user.TeamId
              res.redirect("/todos")
         }).catch((e)=>
         {
@@ -367,7 +378,7 @@ app.get("/disconnect",(req,res)=>
 // This function return one todo 
 app.get("/todos/:todoid", (req,res)=>
 {
-    todo.findOne({where:{ id:req.params.todoid, [op.or]:{userId:req.session.userId , teamId: req.session.teamId}}}).then((myTodo)=>
+    models.Todo.findOne({where:{ id:req.params.todoid, [op.or]:{UserId:req.session.userId , TeamId: req.session.teamId}}}).then((myTodo)=>
     {
         if(myTodo != null)
         {  
@@ -390,16 +401,17 @@ app.get("/todos/:todoid", (req,res)=>
 // Important: if the query contain team (like http://www.url.com/todos?team=true) then it will display only the todos of his team and not his personnal
 app.get("/todos" , (req,res) =>
 {
+    
     let obj = null
     let team = false
     if(req.query.team)
     {
-       obj = {teamId: req.session.teamId}
+       obj = {TeamId: req.session.teamId}
        team = true
     }
     else
     {
-       obj = {userId: req.session.userId } 
+       obj = {UserId: req.session.userId } 
     }
     let msgCreated = null
 
@@ -408,19 +420,18 @@ app.get("/todos" , (req,res) =>
         msgCreated = req.session.msg
         req.session.msg = null
     }
-    todo.findAll({where:obj ,raw:true,
+    models.Todo.findAll({where:obj ,raw:true,
         include: [{
-            model: user,
+            model: models.User,
             
            }]
         }).then((myTodo)=>
     {
         if(myTodo != null)
         {  
-            console.log("ook")
+            
             if(req.accepts("json","html") === "json")
             {
-                console.log("oook")
                 return res.status(200).send(JSON.parse(JSON.stringify(myTodo)))
             }
             else
@@ -485,14 +496,14 @@ function checkUser(req, res, next) {
     {
         if(key != null)
         {
-            user.findOne({where: {apiKey: key}}).then((user)=>
+            models.User.findOne({where: {apiKey: key}}).then((user)=>
             {
                 
                 if(user != null)
                 {
-                    console.log("ok")
+                    
                     req.session.userId = user.id
-                    req.session.teamId = user.teamId
+                    req.session.teamId = user.TeamId
                     return next()
                 }
                 else

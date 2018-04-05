@@ -27,12 +27,12 @@
             li= val.message
             li= val.createdAt
             if team
-              li= "appartient à : "+ val['user.username']
+              li= "appartient à : "+ val['User.username']
             if val.completion 
               p Terminé
             else
               p En cours
-        if val.userId == userId  
+        if val.UserId == userId  
           form(method='GET' action='/todos/'+ val.id+"/edit")
               input(type='submit' value='Editer')
           form(method='POST' action='/todos/'+ val.id+"/delete")
